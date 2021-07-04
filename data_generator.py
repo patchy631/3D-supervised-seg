@@ -51,10 +51,38 @@ def normalize_data(arr):
     return arr
 
 
+def norm_pts(x):
+    """
+    Normalise points to a
+    Unit Sphere
+    Args:
+        x: input arr
+
+    Returns: points normalised
+    to Unit Sphere
+
+    """
+    x -= np.mean(x, axis=0)
+    dists = np.linalg.norm(x, axis=1)
+    return x / np.max(dists)
+
+
+def get_class_weights(labels):
+    """
+    [1, 0] -> 0
+    [0, 1] -> 1
+    """
+    arr = list(map(lambda x: 0 if x[0] == 1 else 1, labels))
+    c0, c1 = np.bincount(arr)
+    weight_for_0 = (1 / c0) * (len(arr) / 2.0)
+    weight_for_1 = (1 / c1) * (len(arr) / 2.0)
+    return [weight_for_0, weight_for_1]
+
+
 def main():
     df = pd.read_csv('records.csv', usecols=['X', 'Y', 'Z', 'raw_classification'])
     arr = df.to_numpy().astype(np.float32)
-    arr = normalize_data(arr)
+    arr[:, :-1] = norm_pts(arr[:, :-1])
     inputs = arr[:, :-1]
     labels = arr[:, -1]
     inputs = inputs[labels != 2.0]
