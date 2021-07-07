@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import optimizers
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-
+import losses
 from pointnet_model.pointnet import PointNet
 
 tf.compat.v1.disable_eager_execution()
@@ -47,9 +47,9 @@ global variable
 # batch size
 batch_size = 32
 # number of points in each sample
-num_points = 1000
+num_points = 2048
 # number of categories
-k = 5
+k = 9
 # epoch number
 epo = 20
 # define optimizer
@@ -58,48 +58,11 @@ adam = optimizers.Adam(lr=0.001, decay=0.7)
 '''
 load train and test data
 '''
-# load TRAIN points and labels
-path = os.path.dirname(os.path.realpath(__file__))
-train_path = os.path.join(path, "train_data")
-filenames = [d for d in os.listdir(train_path)]
-print(train_path)
-print(filenames)
-train_points = None
-train_labels = None
-for d in filenames:
-    cur_points, cur_labels = load_h5(os.path.join(train_path, d))
-    cur_points = cur_points[68682:]
-    cur_labels = cur_labels[68682:]
-    # cur_points = cur_points.reshape(1, -1, 3)
-    # cur_labels = cur_labels.reshape(1, -1)
-    if train_labels is None or train_points is None:
-        train_labels = cur_labels
-        train_points = cur_points
-    else:
-        train_labels = np.hstack((train_labels, cur_labels))
-        train_points = np.hstack((train_points, cur_points))
-train_points_r = train_points.reshape(-1, num_points, 3)
-train_labels_r = train_labels.reshape(-1, num_points, k)
+train_points_r = np.load('dales_inputs.npy')
+train_labels_r = np.load('dales_labels.npy')
 
-# load TEST points and labels
-test_path = os.path.join(path, "test_data")
-filenames = [d for d in os.listdir(test_path)]
-print(test_path)
-print(filenames)
-test_points = None
-test_labels = None
-for d in filenames:
-    cur_points, cur_labels = load_h5(os.path.join(test_path, d))
-    cur_points = cur_points[68682:]
-    cur_labels = cur_labels[68682:]
-    if test_labels is None or test_points is None:
-        test_labels = cur_labels
-        test_points = cur_points
-    else:
-        test_labels = np.hstack((test_labels, cur_labels))
-        test_points = np.hstack((test_points, cur_points))
-test_points_r = test_points.reshape(-1, num_points, 3)
-test_labels_r = test_labels.reshape(-1, num_points, k)
+test_points_r = np.load('dales_inputs_test.npy')
+test_labels_r = np.load('dales_labels_test.npy')
 
 """
 load model
@@ -123,20 +86,28 @@ tbCallBack = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=0, wr
 modelCkptCallBack = ModelCheckpoint("./model.hdf5", monitor='val_loss', save_best_only=True, save_weights_only=True,
                                     verbose=1)
 
+# define categorical focal loss
+loss = losses.categorical_focal_loss(alpha=0.25)
+
+'''
+train and evaluate the model
+'''
+# compile classification model
+model.compile(optimizer='adam',
+              loss=loss,
+              metrics=['categorical_accuracy'])
+
 # train model
 for i in range(epo):
-    # augment the data by rotating and
-    # jitter point cloud every epoch
+    # rotate and jitter point cloud every epoch
     train_points_rotate = rotate_point_cloud(train_points_r)
     train_points_jitter = jitter_point_cloud(train_points_rotate)
-    steps_per_epoch = int(train_points_jitter.shape[0] / batch_size)
-    model.fit(train_points_jitter, train_labels_r, batch_size=batch_size,
-              epochs=1, shuffle=True, verbose=1, callbacks=[tbCallBack])
+    model.fit(train_points_jitter, train_labels_r, batch_size=32, epochs=1, shuffle=True, verbose=1)
+
     # evaluate model
-    if i % 5 == 0:
+    if i % 2 == 0:
         score = model.evaluate(test_points_r, test_labels_r, verbose=1)
+        if score[1] > 0.75:
+            model.save('model_accurate.hdf5')
         print('Test loss: ', score[0])
         print('Test accuracy: ', score[1])
-
-final_model_path = "model_train_end.hdf5"
-model.save(final_model_path)

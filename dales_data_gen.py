@@ -1,11 +1,12 @@
-import random
+import glob
+
 import laspy as lp
 import numpy as np
 
 
 def one_hot_encode(labels):
     targets = np.array(list(map(label_mapper, labels)))
-    nb_classes = 5
+    nb_classes = 9
     one_hot_targets = np.eye(nb_classes)[targets]
     return one_hot_targets
 
@@ -30,7 +31,7 @@ def label_mapper(label):
     Returns:
 
     """
-    label_map = {1.0: 0, 2.0: 1, 6.0: 2, 9.0: 3, 26.0: 4}
+    label_map = {0.0: 0, 1.0: 1, 2.0: 2, 3.0: 3, 4.0: 4, 5.0: 5, 6.0: 6, 7.0: 7, 8.0: 8}
     return label_map[label]
 
 
@@ -50,10 +51,6 @@ def norm_pts(x):
     dists = np.linalg.norm(x, axis=1)
     return x / np.max(dists)
 
-def normalise_intensities(intensities):
-    intensities = np.clip(intensities, a_min=1, a_max=600)
-    intensities = (intensities - 1)/600
-    return intensities
 
 def generate_samples(points, sample_size):
     inputs = []
@@ -67,24 +64,17 @@ def generate_samples(points, sample_size):
         labels.append(label)
     return inputs, labels
 
+t = np.load('da')
 
-orig_point_cloud = lp.read('C_37EZ1.las')
-orig_data = np.vstack((orig_point_cloud.x, orig_point_cloud.y, orig_point_cloud.z, orig_point_cloud.intensity,
-                  orig_point_cloud.classification)).transpose()
-
-# globally normalise intensities
-orig_data[:, 3] = normalise_intensities(orig_data[:, 3])
-
-orig_grids = group_into_grids(orig_data, 10)
-
-orig_grids = random.sample(orig_grids, 30)
+list_train_files = glob.glob('./dales_las/test/*.las')[:5]
 
 input_samples = []
 label_samples = []
 count = 0
-for orig_grid in orig_grids:
-
-    grids = group_into_grids(orig_grid, 10)
+for file in list_train_files:
+    point_cloud = lp.read(file)
+    data = np.vstack((point_cloud.x, point_cloud.y, point_cloud.z, point_cloud.classification)).transpose()
+    grids = group_into_grids(data, 10)
     for grid in grids:
         grid[:, :3] = norm_pts(grid[:, :3])
         inputs, labels = generate_samples(grid, 2048)
@@ -93,5 +83,5 @@ for orig_grid in orig_grids:
     count += 1
     print(f'{count} files processed')
 
-np.save('inputs.npy', np.asarray(input_samples))
-np.save('labels.npy', np.asarray(label_samples))
+np.save('dales_train/dales_inputs_test.npy', np.asarray(input_samples))
+np.save('dales_train/dales_labels_test.npy', np.asarray(label_samples))
