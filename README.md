@@ -9,6 +9,6 @@
 
 ### Sample result 
 
-<img width="352" alt="Screenshot 2021-07-08 at 5 02 12 AM" src="https://user-images.githubusercontent.com/38653995/124840926-ad022c80-dfa9-11eb-958e-5de20028e04e.png">
+<img width="1030" alt="Screenshot 2021-07-08 at 5 02 12 AM" src="https://user-images.githubusercontent.com/38653995/124840926-ad022c80-dfa9-11eb-958e-5de20028e04e.png">
 
 
