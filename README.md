@@ -11,4 +11,6 @@
 
 <img width="1030" alt="Screenshot 2021-07-08 at 5 02 12 AM" src="https://user-images.githubusercontent.com/38653995/124840926-ad022c80-dfa9-11eb-958e-5de20028e04e.png">
 
+### results on a 50*50 grid
+<img width="1030" alt="Screenshot 2021-07-15 at 9 11 58 AM" src="https://user-images.githubusercontent.com/38653995/125725802-f251fa8b-09e0-4b17-ba71-9e73105d532d.png">
 
